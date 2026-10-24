@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pulse Sync — Intimate Connection Studio</title>
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#08070e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pulse Sync">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((registration) => {
+                        console.log('Pulse Sync Service Worker registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+
+    <style>
+        :root {
+            --bg-dark: #08070e;
+            --bg-card: rgba(22, 18, 33, 0.75);
+            --bg-card-hover: rgba(35, 29, 51, 0.88);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --accent-rose: #ff4b72;
+            --accent-rose-glow: rgba(255, 75, 114, 0.45);
+            --accent-violet: #9d4edd;
+            --accent-violet-glow: rgba(157, 78, 221, 0.45);
+            --accent-warm: #ff85a1;
+            --accent-cyan: #4cc9f0;
+            --accent-emerald: #2ec4b6;
+            --text-main: #f8f9fa;
+            --text-sub: #a0a5ba;
+            --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 10px;
+            --dock-height: 72px;
+        }
+
+        body.left-handed {
+            --thumb-position: left;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 12% 18%, rgba(157, 78, 221, 0.18) 0%, transparent 45%),
+                radial-gradient(circle at 88% 82%, rgba(255, 75, 114, 0.18) 0%, transparent 45%);
+        }
+
+        .app-frame {
+            width: 100%;
+            max-width: 440px;
+            height: 100vh;
+            max-height: 930px;
+            background: rgba(14, 11, 22, 0.96);
+            backdrop-filter: blur(24px);
+            border-radius: 36px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.85), 0 0 45px rgba(157, 78, 221, 0.12);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Top Status & App Bar */
+        .top-bar {
+            padding: 18px 20px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            background: linear-gradient(180deg, rgba(8, 7, 14, 0.95) 0%, transparent 100%);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.15rem;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-logo {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, var(--accent-rose), var(--accent-violet));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 14px var(--accent-rose-glow);
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-sub);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan);
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
+        }
+
+        /* Main Scrollable Viewport */
+        .viewport {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 18px 90px;
+            scroll-behavior: smooth;
+        }
+
+        .viewport::-webkit-scrollbar {
+            display: none;
+        }
+
+        .view-tab {
+            display: none;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .view-tab.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Card System */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            margin-bottom: 14px;
+            transition: all 0.25s ease;
+        }
+
+        .card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-sub);
+            margin-top: -6px;
+            margin-bottom: 12px;
+            line-height: 1.35;
+        }
+
+        /* Controls & Sliders */
+        .control-group {
+            margin-top: 12px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+        }
+
+        .slider-val {
+            color: var(--accent-rose);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-rose), var(--accent-violet));
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent-rose-glow);
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: var(--radius-md);
+            border: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-rose), var(--accent-violet));
+            color: white;
+            box-shadow: 0 4px 15px var(--accent-rose-glow);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .btn-secondary:active {
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* Visualizers & Canvas */
+        .visualizer-box {
+            width: 100%;
+            height: 110px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        #pattern-canvas {
+            touch-action: none;
+            background: radial-gradient(circle at center, rgba(157, 78, 221, 0.08) 0%, rgba(0, 0, 0, 0.4) 100%);
+            cursor: crosshair;
+        }
+
+        #radar-canvas {
+            background: radial-gradient(circle at center, rgba(76, 201, 240, 0.05) 0%, rgba(0, 0, 0, 0.5) 100%);
+        }
+
+        /* Bottom Navigation Dock */
+        .nav-dock {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--dock-height);
+            background: rgba(10, 8, 18, 0.94);
+            backdrop-filter: blur(25px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            padding: 6px 4px 18px;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            font-size: 0.62rem;
+            font-weight: 500;
+            cursor: pointer;
+            gap: 3px;
+            transition: color 0.2s ease;
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            transition: transform 0.2s ease;
+        }
+
+        .nav-item.active {
+            color: var(--accent-rose);
+        }
+
+        .nav-item.active svg {
+            transform: translateY(-2px);
+        }
+
+        /* Floating Quick Action Overlay */
+        .floating-thumb-btn {
+            position: absolute;
+            bottom: 82px;
+            right: 18px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-rose), var(--accent-violet));
+            border: none;
+            color: white;
+            box-shadow: 0 6px 20px var(--accent-rose-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 90;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        body.left-handed .floating-thumb-btn {
+            right: auto;
+            left: 18px;
+        }
+
+        .game-wheel {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            border: 4px solid var(--accent-violet);
+            margin: 8px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 14px;
+            background: radial-gradient(circle, rgba(157, 78, 221, 0.2) 0%, transparent 70%);
+            font-weight: 600;
+            font-size: 0.82rem;
+            transition: transform 0.6s cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+
+        /* Modal Sheet */
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            display: none;
+            align-items: flex-end;
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+        }
+
+        .modal-sheet {
+            width: 100%;
+            background: var(--bg-dark);
+            border-top: 1px solid var(--border-color);
+            border-radius: 28px 28px 0 0;
+            padding: 22px;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .badge-pill {
+            font-size: 0.68rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-sub);
+        }
+
+        .badge-cyan {
+            background: rgba(76, 201, 240, 0.15);
+            color: var(--accent-cyan);
+        }
+
+        .badge-rose {
+            background: rgba(255, 75, 114, 0.15);
+            color: var(--accent-rose);
+        }
+
+        .badge-emerald {
+            background: rgba(46, 196, 182, 0.15);
+            color: var(--accent-emerald);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-frame">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="brand">
+                <div class="brand-logo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                        <path
+                            d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                </div>
+                <span>Pulse Sync</span>
+            </div>
+            <div class="status-pill" id="global-status">
+                <div class="status-dot"></div>
+                <span id="status-text">Connected • P2P Safe</span>
+            </div>
+        </div>
+
+        <!-- Scrollable Viewport -->
+        <div class="viewport">
+
+            <!-- TAB 1: SESSION (Multi-Device & Live Controls) -->
+            <div class="view-tab active" id="tab-session">
+                <div class="card">
+                    <div class="card-title">
+                        <span>Live Partner Wave</span>
+                        <span class="badge-pill badge-cyan">Synced • 16ms</span>
+                    </div>
+                    <div class="visualizer-box">
+                        <canvas id="live-wave-canvas"></canvas>
+                    </div>
+                    <div class="control-group">
+                        <div class="slider-header">
+                            <span>Shared Intensity</span>
+                            <span class="slider-val" id="intensity-val">65%</span>
+                        </div>
+                        <input type="range" id="intensity-slider" min="0" max="100" value="65">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span>Hardware Control Hub</span>
+                        <button class="btn-secondary" style="padding: 4px 10px; font-size: 0.72rem; width: auto;"
+                            onclick="simulateAddDevice()">+ Add Device</button>
+                    </div>
+                    <div class="card-subtitle">Cross-brand hardware synced via OpenSDK</div>
+
+                    <div style="display: flex; flex-direction: column; gap: 10px;" id="device-list">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: var(--radius-sm);">
+                            <div>
+                                <div style="font-size: 0.85rem; font-weight: 600;">Lovense Max 2</div>
+                                <div style="font-size: 0.68rem; color: var(--text-sub);">Bluetooth LE • Battery 88%
+                                </div>
+                            </div>
+                            <input type="range" style="width: 90px;" value="65">
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: var(--radius-sm);">
+                            <div>
+                                <div style="font-size: 0.85rem; font-weight: 600;">We-Vibe Sync</div>
+                                <div style="font-size: 0.68rem; color: var(--text-sub);">OpenSDK Gateway • Battery 94%
+                                </div>
+                            </div>
+                            <input type="range" style="width: 90px;" value="40">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Hand Over Control</div>
+                    <div class="btn-grid">
+                        <button class="btn btn-secondary" onclick="triggerToast('Partner now controlling')">Partner
+                            Leads</button>
+                        <button class="btn btn-primary" onclick="triggerToast('You are in control')">I Lead</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: PATTERN CANVAS (Custom Vibration Curve Designer) -->
+            <div class="view-tab" id="tab-pattern">
+                <div class="card">
+                    <div class="card-title">
+                        <span>Pattern Canvas</span>
+                        <span class="badge-pill badge-rose">Draw Custom Curve</span>
+                    </div>
+                    <div class="card-subtitle">Drag finger on canvas below to create real-time tactile rhythms</div>
+                    <div class="visualizer-box" style="height: 140px;">
+                        <canvas id="pattern-canvas"></canvas>
+                    </div>
+                    <div style="margin-top: 10px;" class="btn-grid">
+                        <button class="btn btn-secondary" onclick="clearPatternCanvas()">Clear Canvas</button>
+                        <button class="btn btn-primary" onclick="loopDrawnPattern()">Loop & Play Pattern</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Preset Vibration Curves</div>
+                    <div class="btn-grid" style="grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                        <button class="btn btn-secondary" style="padding: 8px; font-size: 0.75rem;"
+                            onclick="loadPresetWave('ocean')">Ocean Tide</button>
+                        <button class="btn btn-secondary" style="padding: 8px; font-size: 0.75rem;"
+                            onclick="loadPresetWave('pulse')">Heart Staccato</button>
+                        <button class="btn btn-secondary" style="padding: 8px; font-size: 0.75rem;"
+                            onclick="loadPresetWave('staircase')">Staircase Escalation</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: MUSIC & SOUNDSCAPES -->
+            <div class="view-tab" id="tab-music">
+                <div class="card">
+                    <div class="card-title">Audio & Spectrum Reactivity</div>
+                    <div class="card-subtitle">Vibrations auto-sync to live sound or ambient tracks</div>
+                    <div class="visualizer-box">
+                        <canvas id="audio-spectrum-canvas"></canvas>
+                    </div>
+                    <div style="margin-top: 12px;" class="btn-grid">
+                        <button class="btn btn-primary" id="mic-toggle-btn" onclick="toggleMic()">Start Mic
+                            Audio</button>
+                        <button class="btn btn-secondary" onclick="simulateBpmSync()">Sync Ambient Track</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Multi-Layer Soundscape Mixer</div>
+                    <div class="card-subtitle">Mix soothing sound layers into your private session</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <div class="slider-header"><span>Rain & Thunder</span><span class="slider-val">40%</span></div>
+                        <input type="range" min="0" max="100" value="40">
+                        <div class="slider-header"><span>Warm Binaural Alpha (10Hz)</span><span
+                                class="slider-val">65%</span></div>
+                        <input type="range" min="0" max="100" value="65">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Biometric Heartbeat Stream</div>
+                    <div style="display: flex; align-items: center; gap: 16px; margin: 8px 0;">
+                        <div style="font-size: 2.2rem; font-weight: 700; color: var(--accent-rose);" id="bpm-readout">74
+                            <span style="font-size: 0.8rem; color: var(--text-sub);">BPM</span></div>
+                        <div style="font-size: 0.75rem; color: var(--text-sub);">Apple Watch / Galaxy Fit connected
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="pulseHeartbeat()">Stream Pulse to Partner</button>
+                </div>
+            </div>
+
+            <!-- TAB 4: SENSORY & RADAR -->
+            <div class="view-tab" id="tab-sensory">
+                <div class="card">
+                    <div class="card-title">
+                        <span>Partner Presence Radar</span>
+                        <span class="badge-pill badge-emerald">Live Proximity</span>
+                    </div>
+                    <div class="card-subtitle">Visual feedback of partner touch focus & intensity</div>
+                    <div class="visualizer-box" style="height: 130px;">
+                        <canvas id="radar-canvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">4-7-8 Breathing Harmony</div>
+                    <div class="card-subtitle">Synchronize breath cycles before intimacy</div>
+                    <div style="text-align: center; padding: 14px 0;">
+                        <div id="breath-circle"
+                            style="width: 85px; height: 85px; border-radius: 50%; background: radial-gradient(circle, var(--accent-rose) 0%, transparent 70%); margin: 0 auto; transition: transform 4s ease-in-out;">
+                        </div>
+                        <div id="breath-label" style="margin-top: 10px; font-weight: 600; font-size: 0.85rem;">Inhale
+                            Gently...</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="toggleBreathing()">Start Breath Sync</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Thermal Feedback Simulation</div>
+                    <div class="control-group">
+                        <div class="slider-header">
+                            <span>Warmth Level</span>
+                            <span class="slider-val" id="temp-val">37.5°C</span>
+                        </div>
+                        <input type="range" id="temp-slider" min="35" max="42" step="0.5" value="37.5">
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: GAMES & MEMORIES -->
+            <div class="view-tab" id="tab-games">
+                <div class="card">
+                    <div class="card-title">Truth or Pulse Wheel</div>
+                    <div class="card-subtitle">Spin for shared intimate challenges</div>
+                    <div class="game-wheel" id="game-wheel">
+                        Tap Spin to start partner challenge
+                    </div>
+                    <button class="btn btn-primary" style="margin-top: 10px;" onclick="spinWheel()">Spin Wheel</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Session Afterglow & Memories</div>
+                    <div class="card-subtitle">Review previous synced sessions & favorite saved patterns</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.8rem;">
+                            <span>Late Night Chill (24 mins)</span>
+                            <span style="color: var(--accent-rose); font-weight: 600;"
+                                onclick="triggerToast('Pattern Replayed')">Replay Pattern</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.8rem;">
+                            <span>Sunday Morning Warmth (18 mins)</span>
+                            <span style="color: var(--accent-rose); font-weight: 600;"
+                                onclick="triggerToast('Pattern Replayed')">Replay Pattern</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: SETTINGS & DIAGNOSTICS -->
+            <div class="view-tab" id="tab-settings">
+                <div class="card">
+                    <div class="card-title">E2E Encryption Audit</div>
+                    <div style="font-size: 0.78rem; color: var(--text-sub); line-height: 1.4; margin-bottom: 10px;">
+                        Direct WebRTC Peer-to-Peer session. Zero server data retention or cloud session logging.
+                    </div>
+                    <button class="btn btn-secondary" onclick="openModal('security-modal')">Verify Security
+                        Audit</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Hardware Diagnostics & Signal Guard</div>
+                    <div class="btn-grid">
+                        <button class="btn btn-secondary" style="font-size: 0.75rem;"
+                            onclick="openModal('diag-modal')">Run BLE Diag</button>
+                        <button class="btn btn-secondary" style="font-size: 0.75rem;"
+                            onclick="triggerToast('Safe Fallback Auto-Decay Set')">Signal Guard: Active</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Ergonomics & Accessibility</div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="font-size: 0.82rem;">Left-Handed Ergonomics Mode</span>
+                        <input type="checkbox" id="handedness-toggle" onchange="toggleHandedness()">
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.82rem;">Voice Command Control</span>
+                        <input type="checkbox" id="voice-toggle" onchange="toggleVoice()">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Floating Thumb Quick-Pause Action Button -->
+        <button class="floating-thumb-btn" onclick="quickPause()" title="Quick Pause / Safe Fallback">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+            </svg>
+        </button>
+
+        <!-- Navigation Dock (6 Tabs) -->
+        <div class="nav-dock">
+            <button class="nav-item active" onclick="switchTab('tab-session', this)">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
+                </svg>
+                <span>Session</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('tab-pattern', this)">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                </svg>
+                <span>Canvas</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('tab-music', this)">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                </svg>
+                <span>Sound</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('tab-sensory', this)">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M12 2c1.1 0 2 .9 2 2v1.18c2.16.42 3.84 2.1 4.28 4.26H19.5c1.1 0 2 .9 2 2s-.9 2-2 2h-1.22c-.44 2.16-2.12 3.84-4.28 4.26V19.5c0 1.1-.9 2-2 2s-2-.9-2-2v-1.22c-2.16-.44-3.84-2.12-4.26-4.28H4.5c-1.1 0-2-.9-2-2s.9-2 2-2h1.24c.42-2.16 2.1-3.84 4.26-4.26V4c0-1.1.9-2 2-2z" />
+                </svg>
+                <span>Sensory</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('tab-games', this)">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm3-3c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
+                </svg>
+                <span>Games</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('tab-settings', this)">
+                <svg viewBox="0 0 24 24">
+                    <path
+                        d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                </svg>
+                <span>Settings</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Sheets -->
+    <div class="modal-backdrop" id="security-modal" onclick="closeModal('security-modal')">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 10px;">Zero-Knowledge Audit</div>
+            <div style="font-size: 0.82rem; color: var(--text-sub); line-height: 1.5; margin-bottom: 18px;">
+                • Peer-to-Peer Signal Handshake: <strong>AES-GCM-256 Verified</strong><br>
+                • Transport Layer: <strong>DTLS / WebRTC Direct</strong><br>
+                • Telemetry Retained: <strong>0 Bytes</strong>
+            </div>
+            <button class="btn btn-primary" onclick="closeModal('security-modal')">Close Audit</button>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="diag-modal" onclick="closeModal('diag-modal')">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 10px;">BLE Hardware Diagnostics</div>
+            <div style="font-size: 0.8rem; color: var(--text-sub); line-height: 1.5; margin-bottom: 18px;">
+                • Lovense Max 2: RSSI -58 dBm (Strong)<br>
+                • We-Vibe Sync: RSSI -64 dBm (Stable)<br>
+                • Packet Loss: 0.02%
+            </div>
+            <button class="btn btn-primary" onclick="closeModal('diag-modal')">Close Diag</button>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            el.classList.add('active');
+            if (tabId === 'tab-pattern') initPatternCanvas();
+            if (tabId === 'tab-sensory') initRadarCanvas();
+        }
+
+        // Live Wave Visualizer
+        const waveCanvas = document.getElementById('live-wave-canvas');
+        const waveCtx = waveCanvas.getContext('2d');
+        let wavePhase = 0;
+
+        function resizeCanvases() {
+            waveCanvas.width = waveCanvas.parentElement.clientWidth;
+            waveCanvas.height = waveCanvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+
+        function renderWave() {
+            waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+            waveCtx.beginPath();
+            waveCtx.lineWidth = 3;
+            waveCtx.strokeStyle = '#ff4b72';
+
+            const width = waveCanvas.width;
+            const height = waveCanvas.height;
+            const amplitude = 22;
+            const frequency = 0.02;
+
+            for (let x = 0; x < width; x++) {
+                const y = height / 2 + Math.sin(x * frequency + wavePhase) * amplitude;
+                if (x === 0) waveCtx.moveTo(x, y);
+                else waveCtx.lineTo(x, y);
+            }
+            waveCtx.stroke();
+            wavePhase += 0.08;
+            requestAnimationFrame(renderWave);
+        }
+        renderWave();
+
+        // Pattern Canvas Drawing
+        let pCanvas, pCtx;
+        let isDrawing = false;
+        let patternPoints = [];
+
+        function initPatternCanvas() {
+            pCanvas = document.getElementById('pattern-canvas');
+            pCtx = pCanvas.getContext('2d');
+            pCanvas.width = pCanvas.parentElement.clientWidth;
+            pCanvas.height = pCanvas.parentElement.clientHeight;
+
+            pCanvas.onpointerdown = (e) => {
+                isDrawing = true;
+                patternPoints = [];
+                pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+                addPoint(e);
+            };
+            pCanvas.onpointermove = (e) => {
+                if (isDrawing) addPoint(e);
+            };
+            pCanvas.onpointerup = () => { isDrawing = false; };
+        }
+
+        function addPoint(e) {
+            const rect = pCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            patternPoints.push({ x, y });
+
+            pCtx.lineWidth = 4;
+            pCtx.strokeStyle = '#9d4edd';
+            pCtx.lineTo(x, y);
+            pCtx.stroke();
+            pCtx.beginPath();
+            pCtx.moveTo(x, y);
+        }
+
+        function clearPatternCanvas() {
+            if (pCtx) pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+            patternPoints = [];
+            triggerToast('Canvas Cleared');
+        }
+
+        function loopDrawnPattern() {
+            if (patternPoints.length < 2) {
+                triggerToast('Draw a line first');
+                return;
+            }
+            triggerToast('Looping Custom Pattern');
+        }
+
+        function loadPresetWave(preset) {
+            triggerToast('Loaded preset: ' + preset);
+        }
+
+        // Radar Visualizer
+        function initRadarCanvas() {
+            const rCanvas = document.getElementById('radar-canvas');
+            const rCtx = rCanvas.getContext('2d');
+            rCanvas.width = rCanvas.parentElement.clientWidth;
+            rCanvas.height = rCanvas.parentElement.clientHeight;
+
+            let radarAngle = 0;
+            function renderRadar() {
+                rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
+                const cx = rCanvas.width / 2;
+                const cy = rCanvas.height / 2;
+                const radius = Math.min(cx, cy) - 10;
+
+                rCtx.strokeStyle = 'rgba(76, 201, 240, 0.2)';
+                rCtx.beginPath();
+                rCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+                rCtx.arc(cx, cy, radius * 0.6, 0, Math.PI * 2);
+                rCtx.stroke();
+
+                rCtx.beginPath();
+                rCtx.moveTo(cx, cy);
+                rCtx.arc(cx, cy, radius, radarAngle, radarAngle + 0.3);
+                rCtx.fillStyle = 'rgba(76, 201, 240, 0.15)';
+                rCtx.fill();
+
+                radarAngle += 0.03;
+                if (document.getElementById('tab-sensory').classList.contains('active')) {
+                    requestAnimationFrame(renderRadar);
+                }
+            }
+            renderRadar();
+        }
+
+        // Audio Spectrum Simulator
+        const specCanvas = document.getElementById('audio-spectrum-canvas');
+        const specCtx = specCanvas.getContext('2d');
+        function renderSpectrum() {
+            specCanvas.width = specCanvas.parentElement.clientWidth;
+            specCanvas.height = specCanvas.parentElement.clientHeight;
+            specCtx.clearRect(0, 0, specCanvas.width, specCanvas.height);
+            const bars = 16;
+            const barWidth = specCanvas.width / bars;
+            for (let i = 0; i < bars; i++) {
+                const barHeight = Math.random() * specCanvas.height * 0.7;
+                specCtx.fillStyle = '#9d4edd';
+                specCtx.fillRect(i * barWidth, specCanvas.height - barHeight, barWidth - 2, barHeight);
+            }
+            requestAnimationFrame(renderSpectrum);
+        }
+        renderSpectrum();
+
+        document.getElementById('intensity-slider').addEventListener('input', (e) => {
+            document.getElementById('intensity-val').innerText = e.target.value + '%';
+        });
+
+        document.getElementById('temp-slider').addEventListener('input', (e) => {
+            document.getElementById('temp-val').innerText = e.target.value + '°C';
+        });
+
+        function triggerToast(msg) {
+            const statusText = document.getElementById('status-text');
+            const orig = statusText.innerText;
+            statusText.innerText = msg;
+            setTimeout(() => { statusText.innerText = orig; }, 2400);
+        }
+
+        function quickPause() {
+            document.getElementById('intensity-slider').value = 0;
+            document.getElementById('intensity-val').innerText = '0%';
+            triggerToast('Paused • Safe Fallback Activated');
+        }
+
+        function toggleHandedness() { document.body.classList.toggle('left-handed'); }
+        function toggleVoice() { triggerToast('Voice Command Control Active'); }
+
+        const prompts = [
+            "Share a warm secret memory",
+            "30-second soft pulse massage",
+            "Partner chooses pattern for 2 mins",
+            "Send a secret pulse code"
+        ];
+        function spinWheel() {
+            const wheel = document.getElementById('game-wheel');
+            const randomIdx = Math.floor(Math.random() * prompts.length);
+            wheel.style.transform = "rotate(720deg)";
+            setTimeout(() => {
+                wheel.style.transform = "rotate(0deg)";
+                wheel.innerText = prompts[randomIdx];
+            }, 600);
+        }
+
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        let breathingActive = false;
+        function toggleBreathing() {
+            const circle = document.getElementById('breath-circle');
+            const label = document.getElementById('breath-label');
+            breathingActive = !breathingActive;
+            if (breathingActive) {
+                circle.style.transform = 'scale(1.7)';
+                label.innerText = 'Exhale Softly...';
+                triggerToast('Breathing Cycle Running');
+            } else {
+                circle.style.transform = 'scale(1)';
+                label.innerText = 'Inhale Gently...';
+            }
+        }
+
+        function simulateAddDevice() {
+            const list = document.getElementById('device-list');
+            const newDev = document.createElement('div');
+            newDev.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 10px 12px; border-radius: var(--radius-sm);";
+            newDev.innerHTML = `
+      <div>
+        <div style="font-size: 0.85rem; font-weight: 600;">Kiiroo Onyx 3</div>
+        <div style="font-size: 0.68rem; color: var(--text-sub);">OpenSDK Gateway • Battery 100%</div>
+      </div>
+      <input type="range" style="width: 90px;" value="50">
+    `;
+            list.appendChild(newDev);
+            triggerToast('Kiiroo Onyx 3 Connected');
+        }
+
+        function toggleMic() {
+            const btn = document.getElementById('mic-toggle-btn');
+            if (btn.innerText.includes('Start')) {
+                btn.innerText = 'Stop Mic Audio';
+                triggerToast('Microphone Sync Active');
+            } else {
+                btn.innerText = 'Start Mic Audio';
+                triggerToast('Microphone Stopped');
+            }
+        }
+
+        function pulseHeartbeat() { triggerToast('Heartbeat Streamed to Partner'); }
+        function simulateBpmSync() { triggerToast('Ambient Track Synced'); }
+    </script>
+
+</body>
+
+</html>

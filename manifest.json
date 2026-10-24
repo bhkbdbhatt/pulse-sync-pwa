@@ -1,0 +1,27 @@
+{
+    "short_name": "Pulse Sync",
+    "name": "Pulse Sync — Intimate Connection Studio",
+    "description": "Cross-brand teledildonic companion app with zero-knowledge P2P encryption.",
+    "icons": [
+        {
+            "src": "icons/icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "icons/icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512",
+            "purpose": "any maskable"
+        }
+    ],
+    "start_url": "./index.html",
+    "background_color": "#08070e",
+    "theme_color": "#08070e",
+    "display": "standalone",
+    "orientation": "portrait",
+    "categories": [
+        "lifestyle",
+        "utilities"
+    ]
+}
